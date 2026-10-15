@@ -1,5 +1,7 @@
 # random
 
+[![CI](https://github.com/Kronuz/random/actions/workflows/ci.yml/badge.svg)](https://github.com/Kronuz/random/actions/workflows/ci.yml)
+
 A small, dependency-free **random-number** helper library for C++20, extracted
 from [Xapiand](https://github.com/Kronuz/Xapiand).
 
