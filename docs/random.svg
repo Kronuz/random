@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="626" height="535" viewBox="0 0 626 535">
+<rect width="626" height="535" rx="10" fill="#1f2329"/>
+<circle cx="20" cy="18" r="6" fill="#ff5f57"/><circle cx="40" cy="18" r="6" fill="#febc2e"/><circle cx="60" cy="18" r="6" fill="#28c840"/>
+<text x="313.0" y="22" fill="#8a919c" font-family="Menlo, Consolas, monospace" font-size="12" text-anchor="middle">random_demo</text>
+<g font-family="Menlo, Consolas, DejaVu Sans Mono, monospace" font-size="14" fill="#d8dee9" xml:space="preserve">
+<text x="18.0" y="56" >random demo</text>
+<text x="18.0" y="94" font-weight="bold">── random_real(a, b): a uniform real in [a, b] ──</text>
+<text x="18.0" y="113" >  0.346343</text>
+<text x="18.0" y="132" >  0.033840</text>
+<text x="18.0" y="151" >  0.754530</text>
+<text x="18.0" y="170" >  0.145383</text>
+<text x="18.0" y="189" >  0.515687</text>
+<text x="18.0" y="227" font-weight="bold">── random_int(a, b): a uniform integer in [a, b] ──</text>
+<text x="18.0" y="246" >  dice: 1 3 4 5 2 4 1 4 2 5</text>
+<text x="18.0" y="284" font-weight="bold">── random_time(a, b): a uniform std::chrono::milliseconds in [a, b] ──</text>
+<text x="18.0" y="303" >  backoff: 499 ms</text>
+<text x="18.0" y="322" >  backoff: 206 ms</text>
+<text x="18.0" y="341" >  backoff: 372 ms</text>
+<text x="18.0" y="360" >  backoff: 447 ms</text>
+<text x="18.0" y="379" >  backoff: 147 ms</text>
+<text x="18.0" y="417" font-weight="bold">── random_string(n): n characters from [0-9A-Za-z] ──</text>
+<text x="18.0" y="436" >  id(8)  : IJcYh5Hk</text>
+<text x="18.0" y="455" >  id(16) : IttaV6wzfHNJDzz2</text>
+<text x="18.0" y="474" >  id(32) : 0Cvo2d5lHoqYWntXwDK1SRN6jyLW1cv0</text>
+<text x="18.0" y="512" >done.</text>
+</g></svg>

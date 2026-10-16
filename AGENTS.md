@@ -14,7 +14,8 @@ test/test.cc                 Runnable smoke test: range bounds, degenerate range
 examples/demo.cc             A runnable tour (not a test).
 CMakeLists.txt               Compiled library `random` (+ alias random::random); no FetchContent; CTest test `random`.
 LICENSE                      MIT, Copyright (c) 2015-2019 Dubalu LLC.
-README.md                    What it is, install, usage, API.
+README.md                    What it is, install, quick start.
+docs/API.md                  The API reference.
 ARCHITECTURE.md              Internal design: the shared thread-local generator and the four wrappers.
 ```
 
