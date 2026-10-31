@@ -14,8 +14,8 @@ setup. For jitter, backoff, sampling, and throwaway ids.
 
 ## ✨ Highlights
 
-- **No setup.** One `std::mt19937_64` per thread, seeded once from
-  `std::random_device`.
+- **No setup.** One xoshiro256++ generator per thread (32 bytes of state), seeded
+  once from `std::random_device`.
 - **Inclusive ranges.** `random_int(1, 6)` can return both 1 and 6.
 - **Durations directly.** `random_time(100ms, 500ms)` for randomized backoff.
 - **Thread-safe** without locks: each thread has its own generator.
@@ -60,9 +60,16 @@ int main() {
 
 - ✅ Timers, retries, sampling, test data, and ids that only need to be unlikely to
   collide.
-- ❌ Secrets, tokens, or anything an attacker might predict: a Mersenne twister is
+- ❌ Secrets, tokens, or anything an attacker might predict: xoshiro256++ is
   not a cryptographic generator.
 - ❌ Reproducible runs: seeds come from `std::random_device`.
+
+## ⚡ Performance note
+
+xoshiro256++ with Lemire's multiply-shift ranges replaces `std::mt19937_64` and the standard distributions.
+`random_string` draws ten characters per 64-bit value (6-bit fields, rejecting 62 and 63, so every symbol is exactly
+1/62) into a pre-sized buffer: 8/32/256 characters take 7.9/31/104 ns instead of 29/118/885 ns (Apple M4 Pro, -O3).
+`random_int` goes from 3.9 to 2.4 ns (the out-of-line call is most of what is left). `bench/bench.cc`.
 
 ## 📚 Documentation
 

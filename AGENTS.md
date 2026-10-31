@@ -9,7 +9,8 @@ easy to fall into.
 
 ```
 random.hh                    Declares random_real / random_int / random_time / random_string. Header. Verbatim from Xapiand.
-random.cc                    The shared thread-local rng() plus the four function bodies. Includes only <random> and <algorithm>. Verbatim from Xapiand.
+random.cc                    The thread-local xoshiro256++ generator plus the four function bodies (Lemire bounded draws). Includes only <random>; no longer verbatim from Xapiand.
+bench/bench.cc               Old (frozen mt19937_64) vs new timing; build with -DRANDOM_BUILD_BENCH=ON.
 test/test.cc                 Runnable smoke test: range bounds, degenerate ranges, both-endpoints-reached, string length/alphabet.
 examples/demo.cc             A runnable tour (not a test).
 CMakeLists.txt               Compiled library `random` (+ alias random::random); no FetchContent; CTest test `random`.
@@ -22,7 +23,7 @@ ARCHITECTURE.md              Internal design: the shared thread-local generator 
 This is not header-only. `random.cc` must be compiled and linked; the header only
 declares the four functions. The CMake target is a plain compiled library. Unlike
 the `repr` sibling, there is **no** external dependency and **no** FetchContent:
-`random.cc` pulls only the standard `<random>` / `<algorithm>` headers.
+`random.cc` pulls only the standard `<random>` header.
 
 ## Build and run the test
 
@@ -37,8 +38,7 @@ test and demo are only added when this repo is the top-level project
 
 ## Dependencies
 
-None beyond the standard library. `random.cc` includes `<random>` and
-`<algorithm>`; `random.hh` includes `<chrono>`, `<cstdint>`, `<string>`. There
+None beyond the standard library. `random.cc` includes `<random>`; `random.hh` includes `<chrono>`, `<cstdint>`, `<string>`. There
 was no `log.h` / opts / config / `THROW` coupling in the original, so nothing was
 decoupled on extraction. Don't add an external dependency.
 
@@ -57,15 +57,15 @@ decoupled on extraction. Don't add an external dependency.
 
 ## Load-bearing invariants
 
-- **One shared generator, `static thread_local`.** `rng()` constructs a single
-  `std::mt19937_64` per thread, seeded once from `std::random_device`. The
-  `static` is what keeps it from reseeding every call (slow and statistically
-  worse); the `thread_local` is what makes it data-race-free without a lock. Keep
-  both qualifiers. Don't move the engine to a namespace-scope global (that would
-  reintroduce cross-thread sharing) and don't reseed per call.
+- **One shared generator, `constinit thread_local`.** `rng()` returns a single
+  xoshiro256++ state per thread, seeded on first use with 256 bits from
+  `std::random_device`. The seeded flag is what keeps it from reseeding every call;
+  the `thread_local` is what makes it data-race-free without a lock. Don't move the
+  state to a namespace-scope global (that would reintroduce cross-thread sharing)
+  and don't reseed per call. Ranges use Lemire multiply-shift: keep the rejection
+  step, it is what makes them unbiased.
 - **All ranges are inclusive of both endpoints.** `random_int` /  `random_time`
-  use `std::uniform_int_distribution`, which includes `last`; `random_real` uses
-  `std::uniform_real_distribution` over `[initial, last]`. The test asserts a
+  include `last`; `random_real` scales 53 bits onto `[initial, last]`. The test asserts a
   small integer range reaches both ends. Don't switch to a half-open convention.
 - **`random_time` is `random_int` over tick counts.** It draws a uniform integer
   over the two durations' `.count()` and rebuilds a `std::chrono::milliseconds`.
@@ -94,18 +94,17 @@ decoupled on extraction. Don't add an external dependency.
   failing draw from a seed. Tests must check ranges and structure, not values. If
   you ever need reproducibility for a test, that is a reason to add a seedable
   entry point, not to assert exact outputs of the current API.
-- **`random_real`'s upper bound.** `std::uniform_real_distribution` is specified
-  over a half-open `[a, b)` in principle, but rounding can let it return `b`; the
+- **`random_real`'s upper bound.** The scaled 53-bit draw is half-open
+  `[a, b)` in principle, but rounding can let it return `b`; the
   contract here is the closed interval `[a, b]` and the test asserts `<= last`.
   Don't tighten the test to `< last`.
-- **The mixed indentation in `random_string` is upstream.** Tabs elsewhere,
-  four-space inside that one function. It is verbatim from Xapiand; leave it so the
-  file stays a clean diff against upstream.
+- **Tests are statistical.** The generator is unseeded, so the chi-square checks use
+  a threshold ~10 sigma out; don't tighten it. The test target is compiled with
+  `-UNDEBUG` so its asserts run in Release builds.
 
 ## Standalone vs. Xapiand
 
 This is a standalone extraction from
-[Xapiand](https://github.com/Kronuz/Xapiand). `random.hh` and `random.cc` were
-copied verbatim; they already had zero local includes (no `log.h`, no `opts`, no
-`THROW`), so there is no decoupling delta. Keep it that way; any change here should
-be reconcilable with upstream as a plain edit.
+[Xapiand](https://github.com/Kronuz/Xapiand). `random.hh` was copied verbatim and `random.cc` started as a verbatim copy; the
+engine and distributions have since been replaced (the API has no seed, so the
+engine is not a contract). Keep zero local includes.

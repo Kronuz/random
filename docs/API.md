@@ -8,16 +8,16 @@ std::chrono::milliseconds random_time(std::chrono::milliseconds initial,
 std::string               random_string(size_t length);
 ```
 
-- **`random_real`** — `std::uniform_real_distribution<double>`. It is nominally
+- **`random_real`** — 53 random bits scaled onto the range. It is nominally
   half-open, but rounding can return `last`, so the contract is `[initial, last]`.
-- **`random_int`** — `std::uniform_int_distribution<std::uint64_t>` over
+- **`random_int`** — an unbiased uniform draw (Lemire's multiply-shift) over
   `[initial, last]`, inclusive on both ends.
 - **`random_time`** — the same uniform integer draw, applied to the millisecond
   `count()` of the two durations and rebuilt into a `std::chrono::milliseconds`.
 - **`random_string`** — picks `length` characters uniformly from the 62-symbol
   alphabet `0-9a-zA-Z`.
 
-The generator is `thread_local`, so each thread gets its own twister and there is
+The generator is `thread_local`, so each thread gets its own generator and there is
 no shared-state contention or data race across threads. The seed comes from
 `std::random_device` once per thread, so draws are not reproducible across runs.
 

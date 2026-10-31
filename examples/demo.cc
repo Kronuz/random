@@ -4,7 +4,7 @@
 //   cmake -B build && cmake --build build && ./build/random_demo
 //
 // The one idea worth taking away: four small generators sit on top of a single
-// thread-local Mersenne twister seeded from std::random_device. random_real and
+// thread-local xoshiro256++ generator seeded from std::random_device. random_real and
 // random_int give you a uniform draw in a range, random_time does the same for a
 // std::chrono::milliseconds duration, and random_string hands back a random
 // alphanumeric string. The values change every run; that is the point.

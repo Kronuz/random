@@ -19,49 +19,40 @@ There is nothing behind it but the standard library: `random.cc` includes only
 
 ## The shared generator
 
-Every function draws from one generator, defined in `random.cc`:
+Every function draws from one generator, defined in `random.cc`: xoshiro256++
+(Blackman and Vigna), four 64-bit words of state held in a constant-initialised
+`thread_local` POD. Access costs a "seeded" flag test, with no dynamic-init guard.
 
-```cpp
-auto& rng() {
-	// Mersenne twister seeded once per thread from std::random_device.
-	static thread_local std::mt19937_64 rng(std::random_device{}());
-	return rng;
-}
-```
+Two things are load-bearing. The state is `thread_local`, so each thread has an
+independent generator with no shared mutable state: no locking and no data race.
+And it is seeded once per thread, on first use, with all 256 bits taken from
+`std::random_device` (32 bits per call, so the state is not limited to a 32-bit
+seed); the all-zero state, a fixed point, is redrawn.
 
-Two things are load-bearing here. It is `static`, so the twister is constructed
-once and reused across calls rather than reseeded each time (reseeding per call
-would be both slow and statistically worse). And it is `thread_local`, so each
-thread gets its own independent twister: there is no shared mutable state across
-threads, which means no locking and no data race, at the cost of one generator
-per thread. The seed is pulled from `std::random_device` (usually `/dev/random`
-or an OS CSPRNG on UNIX-like systems) exactly once per thread when that thread
-first touches `rng()`.
-
-`std::mt19937_64` is the 64-bit Mersenne twister. It is fast and has a long
-period, which is what you want for jitter, ids, and timers. It is not
-cryptographically secure, and this library makes no claim that it is.
+xoshiro256++ is fast and passes the usual statistical batteries, which is what you
+want for jitter, ids, and timers. It is not cryptographically secure, and this
+library makes no claim that it is. It replaced `std::mt19937_64` (2.5 KiB of state,
+a periodic 312-word twist) because there is no seed API: the engine is not part of
+the contract.
 
 ## The four wrappers
 
-Each public function is a thin adapter: build the matching standard distribution
-for the requested range, then draw once from the shared generator.
+`random_int(a, b)` draws `x` and takes `(x * range) >> 64` (a 128-bit multiply),
+Lemire's multiply-shift. The slow path (`low < range`) rejects the few draws that
+would bias a result, so the result is exactly uniform; the division for the
+rejection threshold only runs there. The full `[0, 2^64 - 1]` range returns the raw
+draw. `random_time` is the same draw in unsigned offset space over the millisecond
+`count()` of the two durations (so negative and extreme ranges do not overflow),
+rebuilt into a `std::chrono::milliseconds`.
 
-`random_real` uses `std::uniform_real_distribution<double>` over `[initial,
-last]`. `random_int` uses `std::uniform_int_distribution<std::uint64_t>`, which
-is inclusive on both endpoints. `random_time` is `random_int` in disguise: it
-runs a `std::uniform_int_distribution` over the millisecond `count()` of the two
-durations (using `std::chrono::milliseconds::rep` as the integer type) and wraps
-the result back into a `std::chrono::milliseconds`. So a duration range is just an
-integer range over the tick counts.
+`random_real` takes 53 bits as a double in `[0, 1)` and scales it onto
+`[initial, last]`.
 
-`random_string` is the one with its own loop. It holds a `static` 62-character
-alphabet (`0-9`, then `a-z`, then `A-Z`) and a `thread_local`
-`std::uniform_int_distribution` indexing into it. The distribution's upper bound
-is `sizeof(chrs) - 2`: `sizeof` on the literal counts the trailing NUL, so `- 1`
-would include it and `- 2` lands on the last real character. The function
-reserves `length` bytes up front and pushes one randomly-picked character at a
-time. A request of `0` yields the empty string.
+`random_string` takes one 64-bit draw per ten characters: each draw is cut into ten
+6-bit fields, and a field below 62 indexes a 64-entry alphabet table (`0-9`, `a-z`,
+`A-Z`), so each symbol has probability exactly 1/62; fields 62 and 63 are dropped.
+The string is sized once and written through a pointer, advancing branch-free on
+accepted fields. A request of `0` yields the empty string.
 
 ## Why this shape
 
