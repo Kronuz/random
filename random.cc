@@ -29,8 +29,7 @@
 namespace {
 
 // xoshiro256++ (Blackman & Vigna, 2019): 256 bits of state, one rotate-add
-// output, no multiplies. Not cryptographically secure, same as the
-// std::mt19937_64 it replaces.
+// output, no multiplies. Not cryptographically secure.
 struct Xoshiro256pp {
 	std::uint64_t s[4];
 	bool seeded;

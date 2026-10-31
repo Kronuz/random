@@ -1,4 +1,4 @@
-// Benchmark: the library against a frozen copy of the previous implementation
+// Benchmark: the library against a frozen copy of Xapiand's implementation
 // (thread-local std::mt19937_64 + std::uniform_*_distribution, push_back string).
 // Build: cmake -B build -DCMAKE_BUILD_TYPE=Release -DRANDOM_BUILD_BENCH=ON
 #include <chrono>

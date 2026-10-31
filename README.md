@@ -64,18 +64,26 @@ int main() {
   not a cryptographic generator.
 - ❌ Reproducible runs: seeds come from `std::random_device`.
 
-## ⚡ Performance note
+## ⚡ Performance
 
-xoshiro256++ with Lemire's multiply-shift ranges replaces `std::mt19937_64` and the standard distributions.
-`random_string` draws ten characters per 64-bit value (6-bit fields, rejecting 62 and 63, so every symbol is exactly
-1/62) into a pre-sized buffer: 8/32/256 characters take 7.9/31/104 ns instead of 29/118/885 ns (Apple M4 Pro, -O3).
-`random_int` goes from 3.9 to 2.4 ns (the out-of-line call is most of what is left). `bench/bench.cc`.
+`random_int` and `random_time` use Lemire's multiply-shift ranges.
+`random_string` draws ten characters per 64-bit value (6-bit fields, rejecting 62
+and 63, so every symbol is exactly 1/62) into a pre-sized buffer.
+
+On an Apple M4 Pro (-O3), `random_string` of 8/32/256 characters takes
+7.9/31/104 ns and `random_int` takes 2.4 ns, most of it the out-of-line call.
+Run the benchmark with:
+
+```sh
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DRANDOM_BUILD_BENCH=ON && cmake --build build && ./build/random_bench
+```
 
 ## 📚 Documentation
 
 - [docs/API.md](docs/API.md): the four functions and their ranges.
 - [ARCHITECTURE.md](ARCHITECTURE.md): the per-thread generator.
 - [AGENTS.md](AGENTS.md): repository map and traps.
+- [CHANGELOG.md](CHANGELOG.md): behavior and performance changes.
 
 ## 🛠️ Building and testing
 

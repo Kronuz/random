@@ -1,7 +1,7 @@
 # Architecture
 
 The internals of `random`: one thread-local generator shared by four small
-wrappers over the standard distributions. For usage see `README.md`; for the repo
+range functions. For usage see `README.md`; for the repo
 map and invariants see `AGENTS.md`.
 
 ## Shape
@@ -14,8 +14,8 @@ A header of four declarations and a single compiled translation unit:
 ```
 
 There is nothing behind it but the standard library: `random.cc` includes only
-`<random>` and `<algorithm>`, `random.hh` only `<chrono>`, `<cstdint>`, and
-`<string>`. No external dependency, no FetchContent.
+`<random>` (for `std::random_device`), `random.hh` only `<chrono>`, `<cstdint>`,
+and `<string>`. No external dependency, no FetchContent.
 
 ## The shared generator
 
@@ -31,9 +31,8 @@ seed); the all-zero state, a fixed point, is redrawn.
 
 xoshiro256++ is fast and passes the usual statistical batteries, which is what you
 want for jitter, ids, and timers. It is not cryptographically secure, and this
-library makes no claim that it is. It replaced `std::mt19937_64` (2.5 KiB of state,
-a periodic 312-word twist) because there is no seed API: the engine is not part of
-the contract.
+library makes no claim that it is. The API has no seed, so the engine is not part
+of the contract and can change.
 
 ## The four wrappers
 
@@ -60,6 +59,6 @@ The point is to make "give me a random X in this range" a one-liner at the call
 site, without each caller standing up its own engine and distribution. Folding
 the engine into a shared `thread_local` keeps the call sites trivial and keeps the
 generator off the hot path of construction, while the per-thread split sidesteps
-synchronization entirely. The distributions themselves are the standard library's;
-this library only owns the seeding policy and the alphabet, which is exactly the
-part you'd otherwise copy-paste into every project.
+synchronization entirely. The library owns the seeding policy, the unbiased range
+reduction and the alphabet, which is exactly the part you'd otherwise copy-paste
+into every project.
