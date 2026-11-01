@@ -197,8 +197,11 @@ static void test_mulhi() {
 	                           0xffffffff00000000ull, 0x00000000ffffffffull, ~0ull - 1, ~0ull};
 	for (u64 a : edge) for (u64 b : edge) check_mul(a, b);
 	Mix m{42};
-	for (int i = 0; i < 200000; ++i) check_mul(m(), m());
-	// Narrow words use the same rule: every 16-bit pair.
+	for (int i = 0; i < 200000; ++i) {
+		const u64 a = m(), b = m();  // declarators are sequenced; function arguments are not
+		check_mul(a, b);
+	}
+	// Narrow words use the same rule: a spread of 16-bit multipliers against every 16-bit multiplicand.
 	for (unsigned a = 0; a < 65536; a += 251) {
 		for (unsigned b = 0; b < 65536; ++b) {
 			std::uint16_t l;
