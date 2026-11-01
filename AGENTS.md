@@ -21,7 +21,7 @@ examples/demo.cc             A runnable tour (not a test).
 .github/workflows/msvc.yml   Builds and tests with MSVC on Windows.
 CMakeLists.txt               Compiled library `random` (+ alias random::random); no FetchContent; CTest tests `random`, `random_engine`, `random_engine_portable`, `random_seed`.
 LICENSE                      MIT, Copyright (c) 2015-2019 Dubalu LLC.
-README.md                    What it is, install, quick start.
+README.md                    What it is, quick start, install, timings.
 docs/API.md                  The API reference.
 ARCHITECTURE.md              Internal design: the shared thread-local generator and the four wrappers.
 CHANGELOG.md                 Behavior and performance changes, newest first.
