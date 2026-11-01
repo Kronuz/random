@@ -121,7 +121,9 @@ inline std::uint64_t mulhi(std::uint64_t a, std::uint64_t b, std::uint64_t& lo) 
 	lo = static_cast<std::uint64_t>(m);
 	return static_cast<std::uint64_t>(m >> 64);
 #elif defined(_MSC_VER) && defined(_M_X64)
-	return _umul128(a, b, &lo);
+	std::uint64_t hi;
+	lo = _umul128(a, b, &hi);  // returns the low half, stores the high half through the pointer
+	return hi;
 #elif defined(_MSC_VER) && defined(_M_ARM64)
 	lo = a * b;
 	return __umulh(a, b);
