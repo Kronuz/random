@@ -80,7 +80,7 @@ Not for:
 ## ⚡ Performance
 
 [`random_bench`](bench/bench.cc) times one call on one thread, in ns, as the median of nine
-batches; each cell is the median of three alternating rounds of that. The comparator is what
+batches, over repeated runs. The comparator is what
 the standard library gives: a thread-local `std::mt19937_64` seeded from `std::random_device`,
 with `std::uniform_int_distribution` and `std::uniform_real_distribution` for the ranges and a
 string built by `push_back` from a uniform pick over the 62 symbols (`std_impl` in the same
@@ -91,13 +91,13 @@ the library's, so a value below 1 is a loss.
 
 | Call | M4 Pro `std` | M4 Pro library | M4 Pro × faster | i9 `std` | i9 library | i9 × faster |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `random_int(0, 999999)` | 4.43 | 2.50 | 1.8 | 18.3 | 5.31 | 3.4 |
-| `random_int(1, 6)` | 8.30 | 2.46 | 3.4 | 23.6 | 5.24 | 4.5 |
-| `random_real(0, 1)` | 2.91 | 2.53 | 1.15 | 11.1 | 6.14 | 1.8 |
-| `random_time(100ms, 500ms)` | 7.50 | 2.50 | 3.0 | 22.3 | 4.84 | 4.6 |
-| `random_string(8)` | 33.8 | 8.22 | 4.1 | 151 | 16.7 | 9.1 |
-| `random_string(32)` | 149 | 32.2 | 4.6 | 625 | 83.1 | 7.5 |
-| `random_string(256)` | 1,039 | 107 | 9.7 | 4,702 | 297 | 16 |
+| `random_int(0, 999999)` | 4.59 | 2.42 | 1.9 | 18.3 | 5.31 | 3.4 |
+| `random_int(1, 6)` | 8.24 | 2.49 | 3.3 | 23.6 | 5.24 | 4.5 |
+| `random_real(0, 1)` | 2.93 | 2.50 | 1.2 | 11.1 | 6.14 | 1.8 |
+| `random_time(100ms, 500ms)` | 7.47 | 2.49 | 3.0 | 22.3 | 4.84 | 4.6 |
+| `random_string(8)` | 33.3 | 8.07 | 4.1 | 151 | 16.7 | 9.1 |
+| `random_string(32)` | 152 | 33.6 | 4.5 | 625 | 83.1 | 7.5 |
+| `random_string(256)` | 1,039 | 120 | 8.6 | 4,702 | 297 | 16 |
 
 Apple M4 Pro (macOS 26) and Intel Core i9-9980HK (macOS 15, x86-64), Apple clang 17.0.0 with
 libc++ and `-O3 -DNDEBUG` (CMake Release).
