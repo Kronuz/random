@@ -24,8 +24,8 @@ setup. For jitter, backoff, sampling, and throwaway ids.
 ## 📦 Installation
 
 Requires a C++20 compiler and CMake 3.14 or newer; it compiles one source file.
-CI builds it on Linux (x86_64, arm64), macOS (arm64, x86_64), and FreeBSD, plus
-ASan, UBSan, and TSan builds.
+CI builds it on Linux (x86_64, arm64), macOS (arm64, x86_64), FreeBSD, and
+Windows (MSVC), plus ASan, UBSan, and TSan builds.
 
 ```cmake
 include(FetchContent)
@@ -99,5 +99,5 @@ pass on every platform.
 
 ## 📄 License
 
-MIT, Copyright (c) 2015-2018 Dubalu LLC. See [LICENSE](LICENSE). Extracted from
+MIT. See [LICENSE](LICENSE). Extracted from
 [Xapiand](https://github.com/Kronuz/Xapiand).

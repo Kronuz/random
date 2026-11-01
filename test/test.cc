@@ -213,6 +213,18 @@ static void test_uniformity() {
 		check_chi(counts, 100000.0, "random_int wide range");
 	}
 
+	// Residues over huge ranges. Without the rejection step the thirds above stay uniform, but
+	// a residue class is twice as likely: one class of three at 3 * 2^62, one of two at
+	// ceil(2^65 / 3).
+	{
+		std::vector<std::uint64_t> c3(3), c2(2);
+		for (int i = 0; i < 300000; ++i) c3[random_int(0, (3ull << 62) - 1) % 3]++;
+		check_chi(c3, 100000.0, "random_int % 3 at 3 * 2^62");
+		const std::uint64_t n = 0xaaaaaaaaaaaaaaabull;  // ceil(2^65 / 3)
+		for (int i = 0; i < 200000; ++i) c2[random_int(0, n - 1) % 2]++;
+		check_chi(c2, 100000.0, "random_int % 2 at ceil(2^65 / 3)");
+	}
+
 	// random_time over a negative-spanning range.
 	{
 		using namespace std::chrono;

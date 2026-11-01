@@ -6,16 +6,24 @@ map and invariants see `AGENTS.md`.
 
 ## Shape
 
-A header of four declarations and a single compiled translation unit:
+A header of four declarations, an internal header of templates, and a single compiled
+translation unit:
 
 ```
-  random.hh   declares random_real / random_int / random_time / random_string
-  random.cc   the shared rng() generator and the four function bodies
+  random.hh          declares random_real / random_int / random_time / random_string
+  random_engine.hh   internal: xoshiro256++, the 128-bit multiply, Lemire's bounded draw,
+                     and the real / time / string generators, as templates over the engine
+  random.cc          the thread-local engine state, its seeding, and the four function bodies
 ```
 
-There is nothing behind it but the standard library: `random.cc` includes only
+There is nothing behind it but the standard library: `random.cc` includes `random_engine.hh` and
 `<random>` (for `std::random_device`), `random.hh` only `<chrono>`, `<cstdint>`,
 and `<string>`. No external dependency, no FetchContent.
+
+Every generator in `random_engine.hh` takes the engine as a template argument, so the tests run
+the code `random.cc` runs over a scripted engine, and over 16-bit words to enumerate a whole
+word space. `random.cc` can also be built over another entropy source
+(`RANDOM_ENTROPY_HEADER`), which is how the per-thread seeding is tested.
 
 ## The shared generator
 
@@ -36,7 +44,8 @@ of the contract and can change.
 
 ## The four wrappers
 
-`random_int(a, b)` draws `x` and takes `(x * range) >> 64` (a 128-bit multiply),
+`random_int(a, b)` draws `x` and takes `(x * range) >> 64` (a 128-bit multiply:
+`unsigned __int128`, `_umul128` / `__umulh` on MSVC, or 32-bit limbs elsewhere),
 Lemire's multiply-shift. The slow path (`low < range`) rejects the few draws that
 would bias a result, so the result is exactly uniform; the division for the
 rejection threshold only runs there. The full `[0, 2^64 - 1]` range returns the raw

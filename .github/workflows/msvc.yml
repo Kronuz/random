@@ -1,0 +1,24 @@
+name: MSVC
+# The shared CI covers Linux, macOS and FreeBSD. This job builds and tests with MSVC.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 7 * * *'
+concurrency:
+  group: msvc-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows-msvc:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: cmake -S . -B build
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
