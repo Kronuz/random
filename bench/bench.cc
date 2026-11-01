@@ -1,12 +1,16 @@
-// Benchmark: the library against a frozen copy of Xapiand's implementation
-// (thread-local std::mt19937_64 + std::uniform_*_distribution, push_back string).
-// The frozen copy is noinline, so both sides cost one call into a separate unit.
+// Benchmark: the library against what the standard library gives: a thread-local
+// std::mt19937_64 seeded from std::random_device, with std::uniform_int_distribution and
+// std::uniform_real_distribution for the ranges, and a string built with push_back from a
+// uniform pick over the 62 symbols (namespace std_impl below). The two draw from the same
+// ranges but are different generators, so the values differ; each row first checks that both
+// stay inside the range. std_impl is noinline, so both sides cost one call into a separate unit.
 // Prints the median of 9 batches per row and the batch spread, (max - min) / median.
 // Build: cmake -B build -DCMAKE_BUILD_TYPE=Release -DRANDOM_BUILD_BENCH=ON
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <random>
 #include <string>
 
@@ -18,7 +22,7 @@
 #define NOINLINE __attribute__((noinline))
 #endif
 
-namespace old_impl {
+namespace std_impl {
 static auto& rng() {
 	static thread_local std::mt19937_64 rng(std::random_device{}());
 	return rng;
@@ -59,33 +63,54 @@ static Timing ns_per(F&& f, int batch) {
 }
 
 static void row(const char* name, Timing o, Timing n) {
-	std::printf("%-24s old %8.2f ns (%4.1f%%)  new %8.2f ns (%4.1f%%)  %5.2fx\n",
+	std::printf("%-24s std %8.2f ns (%4.1f%%)  library %8.2f ns (%4.1f%%)  %5.2fx\n",
 	            name, o.median, o.spread * 100, n.median, n.spread * 100, o.median / n.median);
+}
+
+// Both implementations must stay inside their range (and reach both ends of a small one).
+template <class F>
+static void check_range(const char* name, std::uint64_t lo, std::uint64_t hi, F&& f) {
+	std::uint64_t seen_lo = ~0ull, seen_hi = 0;
+	for (int i = 0; i < 200000; ++i) {
+		std::uint64_t v = f();
+		if (v < lo || v > hi) { std::fprintf(stderr, "%s: %llu outside [%llu, %llu]\n", name, (unsigned long long)v, (unsigned long long)lo, (unsigned long long)hi); std::exit(1); }
+		seen_lo = std::min(seen_lo, v);
+		seen_hi = std::max(seen_hi, v);
+	}
+	if (hi - lo < 100 && (seen_lo != lo || seen_hi != hi)) { std::fprintf(stderr, "%s: never reached an end of [%llu, %llu]\n", name, (unsigned long long)lo, (unsigned long long)hi); std::exit(1); }
 }
 
 int main() {
 	using namespace std::chrono_literals;
 	const int B = 2000000;
+	check_range("std random_int", 1, 6, [] { return std_impl::random_int(1, 6); });
+	check_range("library random_int", 1, 6, [] { return random_int(1, 6); });
+	check_range("std random_int", 0, 999999, [] { return std_impl::random_int(0, 999999); });
+	check_range("library random_int", 0, 999999, [] { return random_int(0, 999999); });
+	check_range("std random_time", 100, 500, [] { return std::uint64_t(std_impl::random_time(100ms, 500ms).count()); });
+	check_range("library random_time", 100, 500, [] { return std::uint64_t(random_time(100ms, 500ms).count()); });
+	check_range("std random_real", 0, 1000, [] { return std::uint64_t(std_impl::random_real(0, 1000)); });
+	check_range("library random_real", 0, 1000, [] { return std::uint64_t(random_real(0, 1000)); });
 	row("random_int(0,999999)",
-	    ns_per([](int) { return old_impl::random_int(0, 999999); }, B),
+	    ns_per([](int) { return std_impl::random_int(0, 999999); }, B),
 	    ns_per([](int) { return random_int(0, 999999); }, B));
 	row("random_int(0,2^64-1)",
-	    ns_per([](int) { return old_impl::random_int(0, ~0ull); }, B),
+	    ns_per([](int) { return std_impl::random_int(0, ~0ull); }, B),
 	    ns_per([](int) { return random_int(0, ~0ull); }, B));
 	row("random_int(1,6)",
-	    ns_per([](int) { return old_impl::random_int(1, 6); }, B),
+	    ns_per([](int) { return std_impl::random_int(1, 6); }, B),
 	    ns_per([](int) { return random_int(1, 6); }, B));
 	row("random_real(0,1)",
-	    ns_per([](int) { return (std::uint64_t)(old_impl::random_real(0, 1) * 1e9); }, B),
+	    ns_per([](int) { return (std::uint64_t)(std_impl::random_real(0, 1) * 1e9); }, B),
 	    ns_per([](int) { return (std::uint64_t)(random_real(0, 1) * 1e9); }, B));
 	row("random_time(100ms,500ms)",
-	    ns_per([](int) { return (std::uint64_t)old_impl::random_time(100ms, 500ms).count(); }, B),
+	    ns_per([](int) { return (std::uint64_t)std_impl::random_time(100ms, 500ms).count(); }, B),
 	    ns_per([](int) { return (std::uint64_t)random_time(100ms, 500ms).count(); }, B));
 	for (size_t n : {1, 8, 16, 32, 64, 256}) {
 		char name[32]; std::snprintf(name, sizeof name, "random_string(%zu)", n);
 		const int b = n <= 16 ? 1000000 : 200000;
 		row(name,
-		    ns_per([n](int) { return (std::uint64_t)old_impl::random_string(n)[n - 1]; }, b),
+		    ns_per([n](int) { return (std::uint64_t)std_impl::random_string(n)[n - 1]; }, b),
 		    ns_per([n](int) { return (std::uint64_t)random_string(n)[n - 1]; }, b));
 	}
 }

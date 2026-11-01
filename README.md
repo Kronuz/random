@@ -79,26 +79,36 @@ Not for:
 
 ## ⚡ Performance
 
-`random_bench` times one thread in a Release build (`-O3`, Apple clang 17) and reports the median
-of nine batches:
+[`random_bench`](bench/bench.cc) times one call on one thread, in ns, as the median of nine
+batches; each cell is the median of three alternating rounds of that. The comparator is what
+the standard library gives: a thread-local `std::mt19937_64` seeded from `std::random_device`,
+with `std::uniform_int_distribution` and `std::uniform_real_distribution` for the ranges and a
+string built by `push_back` from a uniform pick over the 62 symbols (`std_impl` in the same
+file, `noinline`, so both sides cost one call into a separate unit). The two are different
+generators, so they do not return the same values; the benchmark checks that both stay inside
+every range and reach both ends of a small one. "× faster" is the standard library's time over
+the library's, so a value below 1 is a loss.
 
-| Call | Apple M4 Pro | Intel Core i9-9980HK |
-| --- | ---: | ---: |
-| `random_int(0, 999999)` | 2.50 ns | 5.3 ns |
-| `random_int(1, 6)` | 2.46 ns | 5.2 ns |
-| `random_real(0, 1)` | 2.53 ns | 6.1 ns |
-| `random_time(100ms, 500ms)` | 2.50 ns | 4.8 ns |
-| `random_string(8)` | 8.2 ns | 17 ns |
-| `random_string(32)` | 32 ns | 83 ns |
-| `random_string(256)` | 107 ns | 297 ns |
+| Call | M4 Pro `std` | M4 Pro library | M4 Pro × faster | i9 `std` | i9 library | i9 × faster |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `random_int(0, 999999)` | 4.43 | 2.50 | 1.8 | 18.3 | 5.31 | 3.4 |
+| `random_int(1, 6)` | 8.30 | 2.46 | 3.4 | 23.6 | 5.24 | 4.5 |
+| `random_real(0, 1)` | 2.91 | 2.53 | 1.15 | 11.1 | 6.14 | 1.8 |
+| `random_time(100ms, 500ms)` | 7.50 | 2.50 | 3.0 | 22.3 | 4.84 | 4.6 |
+| `random_string(8)` | 33.8 | 8.22 | 4.1 | 151 | 16.7 | 9.1 |
+| `random_string(32)` | 149 | 32.2 | 4.6 | 625 | 83.1 | 7.5 |
+| `random_string(256)` | 1,039 | 107 | 9.7 | 4,702 | 297 | 16 |
 
-Most of an integer call is the call itself and the thread-local access. On the i9 the 4 to 6 ns
-calls move by up to 1 ns with the placement of the code in the binary: `random_int(0, 999999)`
-measures 4.2 to 5.3 ns across builds of the same source.
+Apple M4 Pro (macOS 26) and Intel Core i9-9980HK (macOS 15, x86-64), Apple clang 17.0.0 with
+libc++ and `-O3 -DNDEBUG` (CMake Release).
 
 ```sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DRANDOM_BUILD_BENCH=ON && cmake --build build && ./build/random_bench
 ```
+
+Most of an integer call is the call itself and the thread-local access. On the i9 the 4 to 6 ns
+calls move by up to 1 ns with the placement of the code in the binary: `random_int(0, 999999)`
+measures 4.2 to 5.3 ns across builds of the same source.
 
 ## 📚 Documentation
 

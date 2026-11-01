@@ -58,7 +58,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   add_executable(random_demo examples/demo.cc)
   target_link_libraries(random_demo PRIVATE random)
 
-  # Timing against a frozen std::mt19937_64 reference kept in the file.
+  # Timing against std::mt19937_64 with std::uniform_*_distribution, written in the file.
   option(RANDOM_BUILD_BENCH "Build the benchmark" OFF)
   if(RANDOM_BUILD_BENCH)
     add_executable(random_bench bench/bench.cc)

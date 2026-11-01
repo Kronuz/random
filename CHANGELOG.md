@@ -3,6 +3,14 @@
 Notable changes to `random`, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 2026-11-01
+
+### Changed
+
+- `bench/bench.cc` times the library against `std::mt19937_64` with `std::uniform_int_distribution`
+  and `std::uniform_real_distribution` (a thread-local engine seeded from `std::random_device`) and
+  checks that both stay inside each range. The comparator is the code Xapiand ran, renamed `std_impl`.
+
 ## 2026-10-31
 
 ### Added
