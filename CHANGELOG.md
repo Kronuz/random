@@ -42,6 +42,41 @@ Notable changes to `random`, newest first. The format follows
   both columns cost one call into a separate unit, and each row is the median of
   nine batches.
 
+### Performance
+
+Re-measured at `86bd0f5` with `random_bench` (`cmake -B build -DCMAKE_BUILD_TYPE=Release
+-DRANDOM_BUILD_BENCH=ON`, `-O3 -DNDEBUG`, Apple clang 17), one thread, `quiet strict` on an
+Apple M4 Pro and an Intel i9-9980HK. Each figure is the median of three alternating rounds
+of the benchmark's median-of-nine batches. "Before" is the Xapiand
+`std::mt19937_64` implementation kept in `bench/bench.cc`, now `noinline`:
+
+| Call | M4 before | M4 after | | i9 before | i9 after | |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `random_int(0, 999999)` | 4.43 ns | 2.50 ns | 1.8x | 18.3 ns | 5.31 ns | 3.4x |
+| `random_int(1, 6)` | 8.30 ns | 2.46 ns | 3.4x | 23.6 ns | 5.24 ns | 4.5x |
+| `random_int(0, 2^64 - 1)` | 3.13 ns | 2.50 ns | 1.25x | 8.34 ns | 3.85 ns | 2.2x |
+| `random_real(0, 1)` | 2.91 ns | 2.53 ns | 1.15x | 11.1 ns | 6.14 ns | 1.8x |
+| `random_time(100ms, 500ms)` | 7.50 ns | 2.50 ns | 3.0x | 22.3 ns | 4.84 ns | 4.6x |
+| `random_string(1)` | 6.94 ns | 5.58 ns | 1.24x | 26.0 ns | 9.81 ns | 2.7x |
+| `random_string(8)` | 33.8 ns | 8.22 ns | 4.1x | 151 ns | 16.7 ns | 9.1x |
+| `random_string(32)` | 149 ns | 32.2 ns | 4.6x | 625 ns | 83.1 ns | 7.5x |
+| `random_string(256)` | 1039 ns | 107 ns | 9.7x | 4702 ns | 297 ns | 16x |
+
+The 2026-10-30 figures (before 29, 118 and 885 ns for 8, 32 and 256 characters and 3.9 ns for
+`random_int`; after 7.9, 31 and 104 ns and 2.4 ns) were the fastest of seven batches, against
+a copy of the previous code compiled into the benchmark so that the compiler inlined it.
+
+The library against itself before this change (`94f156a`, same `bench.cc`, same flags; ratio of
+medians, new over old). On the M4 every row is between 0.98 and 1.03 (the largest, 1.028 for
+`random_string(8)`, is inside the 2 to 5% spread of the batches). On the i9 the machine code
+of `random_int` is the same: Apple clang emits the same instructions for both libraries, and
+GCC 16 differs only in register choice. The timings differ by up to 25% and the sign changes
+with the build: for `random_int(0, 999999)` with clang the ratio is 1.25 in the default
+build, 0.84 with every function aligned to 64 bytes, and 0.80 in a build of the integer
+rows alone, because the placement of the function in the binary moves the call between
+about 4.2 and 5.3 ns, for either library. The string rows, which do the work, are
+between 0.94 and 1.05 in every build.
+
 ### Fixed
 
 - The README footer carried Dubalu years that did not match the source headers;
@@ -63,15 +98,7 @@ Notable changes to `random`, newest first. The format follows
   buffer, instead of one distribution draw and a `push_back` per character. Its
   alphabet table is padded to 64 entries and the old `sizeof(chrs) - 2` bound is
   gone.
-- Speed against the previous implementation, on an Apple M4 Pro (-O3), from
-  `random_bench`:
-
-  | Call | Before | After | Speedup |
-  | --- | --- | --- | --- |
-  | `random_string(8)` | 29 ns | 7.9 ns | 3.6x |
-  | `random_string(32)` | 118 ns | 31 ns | 3.8x |
-  | `random_string(256)` | 885 ns | 104 ns | 8.5x |
-  | `random_int` | 3.9 ns | 2.4 ns | 1.6x |
+- The speed against the previous implementation is in the 2026-10-31 entry.
 
 ### Added
 

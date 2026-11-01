@@ -70,9 +70,23 @@ int main() {
 `random_string` draws ten characters per 64-bit value (6-bit fields, rejecting 62
 and 63, so every symbol is exactly 1/62) into a pre-sized buffer.
 
-On an Apple M4 Pro (-O3), `random_string` of 8/32/256 characters takes
-7.9/31/104 ns and `random_int` takes 2.4 ns, most of it the out-of-line call.
-Run the benchmark with:
+`random_bench` times one thread in a Release build (`-O3`, Apple clang 17) and
+reports the median of nine batches:
+
+| Call | Apple M4 Pro | Intel i9-9980HK |
+| --- | ---: | ---: |
+| `random_int(0, 999999)` | 2.50 ns | 5.3 ns |
+| `random_int(1, 6)` | 2.46 ns | 5.2 ns |
+| `random_real(0, 1)` | 2.53 ns | 6.1 ns |
+| `random_time(100ms, 500ms)` | 2.50 ns | 4.8 ns |
+| `random_string(8)` | 8.2 ns | 17 ns |
+| `random_string(32)` | 32 ns | 83 ns |
+| `random_string(256)` | 107 ns | 297 ns |
+
+Most of an integer call is the call itself and the thread-local access. On the i9
+the calls of 4 to 6 ns move by up to 1 ns with the placement of the code in the
+binary: `random_int(0, 999999)` took 4.2 to 5.3 ns in different builds of the same
+source.
 
 ```sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DRANDOM_BUILD_BENCH=ON && cmake --build build && ./build/random_bench
